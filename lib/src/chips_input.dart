@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -350,7 +351,9 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
               composing: TextRange.empty,
             );
     });
-    _closeInputConnectionIfNeeded(); //Hack for #34 (https://github.com/danvick/flutter_chips_input/issues/34#issuecomment-684505282). TODO: Find permanent fix
+    if (!kIsWeb) {
+      _closeInputConnectionIfNeeded();
+    } //Hack for #34 (https://github.com/danvick/flutter_chips_input/issues/34#issuecomment-684505282). TODO: Find permanent fix
     _textInputConnection ??= TextInput.attach(this, textInputConfiguration);
     _textInputConnection.setEditingState(_value);
     // _closeInputConnectionIfNeeded(false);
