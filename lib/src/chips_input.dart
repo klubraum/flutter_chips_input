@@ -338,12 +338,17 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
         String.fromCharCodes(_chips.map((_) => kObjectReplacementChar)) +
             "${replaceText ? '' : _value.normalCharactersText}" +
             putText;
+    final value = _value.copyWith(
+      text: updatedText,
+      selection: TextSelection.collapsed(offset: updatedText.length),
+      composing: TextRange.empty,
+    );
     setState(() {
-      _value = _value.copyWith(
-        text: updatedText,
-        selection: TextSelection.collapsed(offset: updatedText.length),
-        //composing: TextRange(start: 0, end: text.length),
-      );
+      _value = value.isComposingRangeValid
+          ? value
+          : value.copyWith(
+              composing: TextRange.empty,
+            );
     });
     _closeInputConnectionIfNeeded(); //Hack for #34 (https://github.com/danvick/flutter_chips_input/issues/34#issuecomment-684505282). TODO: Find permanent fix
     _textInputConnection ??= TextInput.attach(this, textInputConfiguration);
