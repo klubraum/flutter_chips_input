@@ -117,8 +117,10 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   bool get _hasReachedMaxChips =>
       widget.maxChips != null && _chips.length >= widget.maxChips;
 
-  // FocusAttachment _focusAttachment;
+  FocusAttachment _focusAttachment;
   FocusNode _focusNode;
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ?? (_focusNode ??= FocusNode());
 
   RenderBox get renderBox => context.findRenderObject();
 
@@ -129,16 +131,15 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     _suggestions = widget.initialSuggestions
         ?.where((r) => !_chips.contains(r))
         ?.toList(growable: false);
-    // _focusAttachment = _focusNode.attach(context);
+    _focusAttachment = _effectiveFocusNode.attach(context);
     _suggestionsBoxController = SuggestionsBoxController(context);
 
-    _focusNode = widget.focusNode ?? FocusNode();
-    _focusNode.addListener(_handleFocusChanged);
+    _effectiveFocusNode.addListener(_handleFocusChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _initOverlayEntry();
-      if (mounted && widget.autofocus && _focusNode != null) {
-        FocusScope.of(context).autofocus(_focusNode);
+      if (mounted && widget.autofocus && _effectiveFocusNode != null) {
+        FocusScope.of(context).autofocus(_effectiveFocusNode);
       }
     });
   }
@@ -146,11 +147,8 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   @override
   void dispose() {
     _closeInputConnectionIfNeeded();
-
-    _focusNode.removeListener(_handleFocusChanged);
-    if (null == widget.focusNode) {
-      _focusNode.dispose();
-    }
+    _effectiveFocusNode.removeListener(_handleFocusChanged);
+    _focusNode?.dispose();
 
     _suggestionsStreamController.close();
     _suggestionsBoxController.close();
@@ -164,7 +162,8 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   }
 
   void _handleFocusChanged() {
-    if (_focusNode.hasFocus && (_focusNode?.consumeKeyboardToken() ?? true)) {
+    if (_effectiveFocusNode.hasFocus &&
+        (_effectiveFocusNode?.consumeKeyboardToken() ?? true)) {
       _openInputConnection();
       _suggestionsBoxController.open();
     } else {
@@ -385,11 +384,11 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
         if (_suggestions != null && _suggestions.isNotEmpty) {
           selectSuggestion(_suggestions.first);
         } else {
-          _focusNode.unfocus();
+          _effectiveFocusNode.unfocus();
         }
         break;
       default:
-        _focusNode.unfocus();
+        _effectiveFocusNode.unfocus();
         break;
     }
   }
@@ -456,7 +455,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
             ),
             Flexible(
               flex: 0,
-              child: TextCursor(resumed: _focusNode.hasFocus),
+              child: TextCursor(resumed: _effectiveFocusNode.hasFocus),
             ),
           ],
         ),
@@ -476,12 +475,12 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                FocusScope.of(context).requestFocus(_focusNode);
+                FocusScope.of(context).requestFocus(_effectiveFocusNode);
                 _textInputConnection?.show();
               },
               child: InputDecorator(
                 decoration: widget.decoration,
-                isFocused: _focusNode.hasFocus,
+                isFocused: _effectiveFocusNode.hasFocus,
                 isEmpty: _value.text.isEmpty && _chips.isEmpty,
                 child: Wrap(
                   spacing: 4.0,
