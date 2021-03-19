@@ -19,9 +19,6 @@ extension on TextEditingValue {
   String get normalCharactersText => String.fromCharCodes(
         text.codeUnits.where((ch) => ch != kObjectReplacementChar),
       );
-  String get replacementCharactersText => String.fromCharCodes(
-        text.codeUnits.where((ch) => ch == kObjectReplacementChar),
-      );
 
   List<int> get replacementCharacters => text.codeUnits
       .where((ch) => ch == kObjectReplacementChar)
@@ -173,9 +170,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     } else {
       _closeInputConnectionIfNeeded();
       _suggestionsBoxController.close();
-      _value = TextEditingValue(
-        text: _value.replacementCharactersText,
-      );
+      _value = TextEditingValue();
     }
     if (mounted) {
       setState(() {
