@@ -19,6 +19,9 @@ extension on TextEditingValue {
   String get normalCharactersText => String.fromCharCodes(
         text.codeUnits.where((ch) => ch != kObjectReplacementChar),
       );
+  String get replacementCharactersText => String.fromCharCodes(
+        text.codeUnits.where((ch) => ch == kObjectReplacementChar),
+      );
 
   List<int> get replacementCharacters => text.codeUnits
       .where((ch) => ch == kObjectReplacementChar)
@@ -164,12 +167,15 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   }
 
   void _handleFocusChanged() {
-    if (_focusNode.hasFocus) {
+    if (_focusNode.hasFocus && (_focusNode?.consumeKeyboardToken() ?? true)) {
       _openInputConnection();
       _suggestionsBoxController.open();
     } else {
       _closeInputConnectionIfNeeded();
       _suggestionsBoxController.close();
+      _value = TextEditingValue(
+        text: _value.replacementCharactersText,
+      );
     }
     if (mounted) {
       setState(() {
@@ -275,11 +281,13 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   }
 
   void _openInputConnection() {
+    final localValue = _value;
     if (!_hasInputConnection) {
-      _textInputConnection = TextInput.attach(this, textInputConfiguration)
-        ..setEditingState(_value);
+      debugPrint('New Input Connection with value: $localValue');
+      _textInputConnection = TextInput.attach(this, textInputConfiguration);
     }
     _textInputConnection.show();
+    _textInputConnection.setEditingState(localValue);
 
     Future.delayed(const Duration(milliseconds: 100), () {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -309,8 +317,17 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
   @override
   void updateEditingValue(TextEditingValue value) {
+    // print("updateEditingValue FIRED with old value ${_value.text}");
+    // print("updateEditingValue FIRED with old value ${_value}");
     // print("updateEditingValue FIRED with ${value.text}");
+    // print("updateEditingValue FIRED with ${value}");
     // _receivedRemoteTextEditingValue = value;
+    if (value == _value) {
+      // This is possible, for example, when the numeric keyboard is input,
+      // the engine will notify twice for the same value.
+      // Track at https://github.com/flutter/flutter/issues/65811
+      return;
+    }
     var _oldTextEditingValue = _value;
     if (value.text != _oldTextEditingValue.text) {
       setState(() {
@@ -326,15 +343,17 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
           putText = _enteredTexts[removedChip];
           _enteredTexts.remove(removedChip);
         }
-        _updateTextInputState(putText: putText);
+        //_updateTextInputState(putText: putText);
       } else {
-        _updateTextInputState();
+        //_updateTextInputState();
       }
       _onSearchChanged(_value.normalCharactersText);
     }
   }
 
   void _updateTextInputState({replaceText = false, putText = ''}) {
+    // debugPrint(
+    //     '_updateTextInputState, value = $_value, replaceText = $replaceText, putText = $putText');
     final updatedText =
         String.fromCharCodes(_chips.map((_) => kObjectReplacementChar)) +
             "${replaceText ? '' : _value.normalCharactersText}" +
@@ -342,21 +361,23 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     final value = _value.copyWith(
       text: updatedText,
       selection: TextSelection.collapsed(offset: updatedText.length),
-      composing: TextRange.empty,
     );
+    final finalValue = value.isComposingRangeValid
+        ? value
+        : value.copyWith(
+            composing: TextRange.empty,
+          );
     setState(() {
-      _value = value.isComposingRangeValid
-          ? value
-          : value.copyWith(
-              composing: TextRange.empty,
-            );
+      _value = finalValue;
     });
-    if (!kIsWeb) {
+    final updateEditingState = replaceText || !value.isComposingRangeValid;
+    if (!kIsWeb && updateEditingState) {
       _closeInputConnectionIfNeeded();
-    } //Hack for #34 (https://github.com/danvick/flutter_chips_input/issues/34#issuecomment-684505282). TODO: Find permanent fix
+    }
     _textInputConnection ??= TextInput.attach(this, textInputConfiguration);
-    _textInputConnection.setEditingState(_value);
-    // _closeInputConnectionIfNeeded(false);
+    if (updateEditingState) {
+      _textInputConnection.setEditingState(finalValue);
+    }
   }
 
   @override
@@ -468,9 +489,9 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
                 isFocused: _focusNode.hasFocus,
                 isEmpty: _value.text.isEmpty && _chips.isEmpty,
                 child: Wrap(
-                  children: chipsChildren,
                   spacing: 4.0,
                   runSpacing: 4.0,
+                  children: chipsChildren,
                 ),
               ),
             ),
