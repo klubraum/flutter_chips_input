@@ -29,14 +29,14 @@ extension on TextEditingValue {
 
 class ChipsInput<T> extends StatefulWidget {
   const ChipsInput({
-    Key key,
+    Key? key,
     this.initialValue = const [],
     this.decoration = const InputDecoration(),
     this.enabled = true,
-    @required this.chipBuilder,
-    @required this.suggestionBuilder,
-    @required this.findSuggestions,
-    @required this.onChanged,
+    required this.chipBuilder,
+    required this.suggestionBuilder,
+    required this.findSuggestions,
+    required this.onChanged,
     this.onChipTapped,
     this.maxChips,
     this.textStyle,
@@ -57,28 +57,28 @@ class ChipsInput<T> extends StatefulWidget {
         super(key: key);
 
   final InputDecoration decoration;
-  final TextStyle textStyle;
+  final TextStyle? textStyle;
   final bool enabled;
   final ChipsInputSuggestions<T> findSuggestions;
   final ValueChanged<List<T>> onChanged;
   @Deprecated('Will be removed in the next major version')
-  final ValueChanged<T> onChipTapped;
+  final ValueChanged<T>? onChipTapped;
   final ChipsBuilder<T> chipBuilder;
   final ChipsBuilder<T> suggestionBuilder;
   final List<T> initialValue;
-  final int maxChips;
-  final double suggestionsBoxMaxHeight;
+  final int? maxChips;
+  final double? suggestionsBoxMaxHeight;
   final TextInputType inputType;
   final TextOverflow textOverflow;
   final bool obscureText;
   final bool autocorrect;
-  final String actionLabel;
+  final String? actionLabel;
   final TextInputAction inputAction;
   final Brightness keyboardAppearance;
   final bool autofocus;
   final bool allowChipEditing;
-  final FocusNode focusNode;
-  final List<T> initialSuggestions;
+  final FocusNode? focusNode;
+  final List<T>? initialSuggestions;
 
   // final Color cursorColor;
 
@@ -88,18 +88,19 @@ class ChipsInput<T> extends StatefulWidget {
   ChipsInputState<T> createState() => ChipsInputState<T>();
 }
 
-class ChipsInputState<T> extends State<ChipsInput<T>>
+class ChipsInputState<T> extends State<ChipsInput<T?>>
     implements TextInputClient {
-  Set<T> _chips = <T>{};
-  List<T> _suggestions;
-  final _suggestionsStreamController = StreamController<List<T>>.broadcast();
+  Set<T?> _chips = <T>{};
+  List<T?>? _suggestions;
+  final StreamController<List<T?>?> _suggestionsStreamController =
+      StreamController<List<T>?>.broadcast();
   int _searchId = 0;
   TextEditingValue _value = TextEditingValue();
   // TextEditingValue _receivedRemoteTextEditingValue;
-  TextInputConnection _textInputConnection;
-  SuggestionsBoxController _suggestionsBoxController;
+  TextInputConnection? _textInputConnection;
+  late SuggestionsBoxController _suggestionsBoxController;
   final _layerLink = LayerLink();
-  final _enteredTexts = <T, String>{};
+  final Map<T?, String> _enteredTexts = <T, String>{};
 
   TextInputConfiguration get textInputConfiguration => TextInputConfiguration(
         inputType: widget.inputType,
@@ -112,17 +113,17 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
       );
 
   bool get _hasInputConnection =>
-      _textInputConnection != null && _textInputConnection.attached;
+      _textInputConnection != null && _textInputConnection!.attached;
 
   bool get _hasReachedMaxChips =>
-      widget.maxChips != null && _chips.length >= widget.maxChips;
+      widget.maxChips != null && _chips.length >= widget.maxChips!;
 
-  FocusAttachment _focusAttachment;
-  FocusNode _focusNode;
+  FocusAttachment? _focusAttachment;
+  FocusNode? _focusNode;
   FocusNode get _effectiveFocusNode =>
       widget.focusNode ?? (_focusNode ??= FocusNode());
 
-  RenderBox get renderBox => context.findRenderObject();
+  RenderBox? get renderBox => context.findRenderObject() as RenderBox?;
 
   @override
   void initState() {
@@ -130,13 +131,13 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     _chips.addAll(widget.initialValue);
     _suggestions = widget.initialSuggestions
         ?.where((r) => !_chips.contains(r))
-        ?.toList(growable: false);
+        .toList(growable: false);
     _focusAttachment = _effectiveFocusNode.attach(context);
     _suggestionsBoxController = SuggestionsBoxController(context);
 
     _effectiveFocusNode.addListener(_handleFocusChanged);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance!.addPostFrameCallback((_) async {
       _initOverlayEntry();
       if (mounted && widget.autofocus && _effectiveFocusNode != null) {
         FocusScope.of(context).autofocus(_effectiveFocusNode);
@@ -155,15 +156,9 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     super.dispose();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    //TODO: Implement
-  }
-
   void _handleFocusChanged() {
     if (_effectiveFocusNode.hasFocus &&
-        (_effectiveFocusNode?.consumeKeyboardToken() ?? true)) {
+        (_effectiveFocusNode.consumeKeyboardToken())) {
       _openInputConnection();
       _suggestionsBoxController.open();
     } else {
@@ -182,8 +177,8 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     // _suggestionsBoxController.close();
     _suggestionsBoxController.overlayEntry = OverlayEntry(
       builder: (context) {
-        final size = renderBox.size;
-        final renderBoxOffset = renderBox.localToGlobal(Offset.zero);
+        final size = renderBox!.size;
+        final renderBoxOffset = renderBox!.localToGlobal(Offset.zero);
         final topAvailableSpace = renderBoxOffset.dy;
         final mq = MediaQuery.of(context);
         final bottomAvailableSpace = mq.size.height -
@@ -193,18 +188,18 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
         var _suggestionBoxHeight = max(topAvailableSpace, bottomAvailableSpace);
         if (null != widget.suggestionsBoxMaxHeight) {
           _suggestionBoxHeight =
-              min(_suggestionBoxHeight, widget.suggestionsBoxMaxHeight);
+              min(_suggestionBoxHeight, widget.suggestionsBoxMaxHeight!);
         }
         final showTop = topAvailableSpace > bottomAvailableSpace;
         // print("showTop: $showTop" );
         final compositedTransformFollowerOffset =
             showTop ? Offset(0, -size.height) : Offset.zero;
 
-        return StreamBuilder<List<T>>(
+        return StreamBuilder<List<T?>?>(
           stream: _suggestionsStreamController.stream,
           initialData: _suggestions,
           builder: (context, snapshot) {
-            if (snapshot.hasData && snapshot.data.isNotEmpty) {
+            if (snapshot.hasData && snapshot.data!.isNotEmpty) {
               var suggestionsListView = Material(
                 elevation: 4.0,
                 child: ConstrainedBox(
@@ -214,12 +209,12 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
                   child: ListView.builder(
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
-                    itemCount: snapshot.data.length,
+                    itemCount: snapshot.data!.length,
                     itemBuilder: (BuildContext context, int index) {
                       return widget.suggestionBuilder(
                         context,
                         this,
-                        _suggestions[index],
+                        _suggestions![index],
                       );
                     },
                   ),
@@ -247,11 +242,11 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     );
   }
 
-  void selectSuggestion(T data) {
+  void selectSuggestion(T? data) {
     if (!_hasReachedMaxChips) {
       _chips.add(data);
       if (widget.allowChipEditing) {
-        var enteredText = _value.normalCharactersText ?? '';
+        var enteredText = _value.normalCharactersText;
         if (enteredText.isNotEmpty) _enteredTexts[data] = enteredText;
       }
       _updateTextInputState(replaceText: true);
@@ -280,20 +275,20 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
       debugPrint('New Input Connection with value: $localValue');
       _textInputConnection = TextInput.attach(this, textInputConfiguration);
     }
-    _textInputConnection.show();
-    _textInputConnection.setEditingState(localValue);
+    _textInputConnection!.show();
+    _textInputConnection!.setEditingState(localValue);
 
     Future.delayed(const Duration(milliseconds: 100), () {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final RenderBox renderBox = context.findRenderObject();
-        await Scrollable.of(context)?.position?.ensureVisible(renderBox);
+      WidgetsBinding.instance!.addPostFrameCallback((_) async {
+        final RenderBox renderBox = context.findRenderObject() as RenderBox;
+        await Scrollable.of(context)?.position.ensureVisible(renderBox);
       });
     });
   }
 
   void _onSearchChanged(String value) async {
     final localId = ++_searchId;
-    final results = await widget.findSuggestions(value);
+    final List<T?> results = await widget.findSuggestions(value);
     if (_searchId == localId && mounted) {
       _suggestions =
           results.where((r) => !_chips.contains(r)).toList(growable: false);
@@ -303,7 +298,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
   void _closeInputConnectionIfNeeded() {
     if (_hasInputConnection) {
-      _textInputConnection.close();
+      _textInputConnection!.close();
       _textInputConnection = null;
       // _receivedRemoteTextEditingValue = null;
     }
@@ -332,7 +327,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
         var removedChip = _chips.last;
         _chips = Set.of(_chips.take(value.replacementCharactersCount));
         widget.onChanged(_chips.toList(growable: false));
-        var putText = '';
+        String? putText = '';
         if (widget.allowChipEditing && _enteredTexts.containsKey(removedChip)) {
           putText = _enteredTexts[removedChip];
           _enteredTexts.remove(removedChip);
@@ -370,7 +365,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     }
     _textInputConnection ??= TextInput.attach(this, textInputConfiguration);
     if (updateEditingState) {
-      _textInputConnection.setEditingState(finalValue);
+      _textInputConnection!.setEditingState(finalValue);
     }
   }
 
@@ -381,8 +376,8 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
       case TextInputAction.go:
       case TextInputAction.send:
       case TextInputAction.search:
-        if (_suggestions != null && _suggestions.isNotEmpty) {
-          selectSuggestion(_suggestions.first);
+        if (_suggestions != null && _suggestions!.isNotEmpty) {
+          selectSuggestion(_suggestions!.first);
         } else {
           _effectiveFocusNode.unfocus();
         }
@@ -396,17 +391,6 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   @override
   void performPrivateCommand(String action, Map<String, dynamic> data) {
     //TODO
-  }
-
-  @override
-  void didUpdateWidget(ChipsInput oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    /* if(widget.focusNode != oldWidget.focusNode){
-      oldWidget.focusNode.removeListener(_handleFocusChanged);
-      _focusAttachment?.detach();
-      _focusAttachment = widget.focusNode.attach(context);
-      widget.focusNode.addListener(_handleFocusChanged);
-    } */
   }
 
   @override
@@ -426,7 +410,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   void showAutocorrectionPromptRect(int start, int end) {}
 
   @override
-  AutofillScope get currentAutofillScope => null;
+  AutofillScope? get currentAutofillScope => null;
 
   @override
   Widget build(BuildContext context) {
@@ -450,7 +434,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
                 maxLines: 1,
                 overflow: widget.textOverflow,
                 style: widget.textStyle ??
-                    theme.textTheme.subtitle1.copyWith(height: 1.5),
+                    theme.textTheme.subtitle1!.copyWith(height: 1.5),
               ),
             ),
             Flexible(
@@ -464,8 +448,8 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
     return NotificationListener<SizeChangedLayoutNotification>(
       onNotification: (SizeChangedLayoutNotification val) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          _suggestionsBoxController.overlayEntry.markNeedsBuild();
+        WidgetsBinding.instance!.addPostFrameCallback((_) async {
+          _suggestionsBoxController.overlayEntry!.markNeedsBuild();
         });
         return true;
       },
