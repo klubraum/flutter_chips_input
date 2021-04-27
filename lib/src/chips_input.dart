@@ -88,10 +88,10 @@ class ChipsInput<T> extends StatefulWidget {
   ChipsInputState<T> createState() => ChipsInputState<T>();
 }
 
-class ChipsInputState<T> extends State<ChipsInput<T?>>
+class ChipsInputState<T> extends State<ChipsInput<T>>
     implements TextInputClient {
-  Set<T?> _chips = <T>{};
-  List<T?>? _suggestions;
+  Set<T> _chips = <T>{};
+  List<T>? _suggestions;
   final StreamController<List<T?>?> _suggestionsStreamController =
       StreamController<List<T>?>.broadcast();
   int _searchId = 0;
@@ -214,7 +214,7 @@ class ChipsInputState<T> extends State<ChipsInput<T?>>
                       return widget.suggestionBuilder(
                         context,
                         this,
-                        _suggestions![index],
+                        _suggestions![index]!,
                       );
                     },
                   ),
@@ -242,7 +242,7 @@ class ChipsInputState<T> extends State<ChipsInput<T?>>
     );
   }
 
-  void selectSuggestion(T? data) {
+  void selectSuggestion(T data) {
     if (!_hasReachedMaxChips) {
       _chips.add(data);
       if (widget.allowChipEditing) {
@@ -280,7 +280,7 @@ class ChipsInputState<T> extends State<ChipsInput<T?>>
 
     Future.delayed(const Duration(milliseconds: 100), () {
       WidgetsBinding.instance!.addPostFrameCallback((_) async {
-        final RenderBox renderBox = context.findRenderObject() as RenderBox;
+        final renderBox = context.findRenderObject() as RenderBox;
         await Scrollable.of(context)?.position.ensureVisible(renderBox);
       });
     });
@@ -288,7 +288,7 @@ class ChipsInputState<T> extends State<ChipsInput<T?>>
 
   void _onSearchChanged(String value) async {
     final localId = ++_searchId;
-    final List<T?> results = await widget.findSuggestions(value);
+    final results = await widget.findSuggestions(value);
     if (_searchId == localId && mounted) {
       _suggestions =
           results.where((r) => !_chips.contains(r)).toList(growable: false);
