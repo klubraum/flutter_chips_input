@@ -280,8 +280,10 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
     Future.delayed(const Duration(milliseconds: 100), () {
       WidgetsBinding.instance!.addPostFrameCallback((_) async {
-        final renderBox = context.findRenderObject() as RenderBox;
-        await Scrollable.of(context)?.position.ensureVisible(renderBox);
+        final renderBox = context.findRenderObject() as RenderBox?;
+        if (renderBox != null) {
+          await Scrollable.of(context)?.position.ensureVisible(renderBox);
+        }
       });
     });
   }
