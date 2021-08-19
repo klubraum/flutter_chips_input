@@ -272,7 +272,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
   void _openInputConnection() {
     final localValue = _value;
     if (!_hasInputConnection) {
-      debugPrint('New Input Connection with value: $localValue');
+      //debugPrint('New Input Connection with value: $localValue');
       _textInputConnection = TextInput.attach(this, textInputConfiguration);
     }
     _textInputConnection!.show();
@@ -448,38 +448,57 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
       ),
     );
 
-    return NotificationListener<SizeChangedLayoutNotification>(
-      onNotification: (SizeChangedLayoutNotification val) {
-        WidgetsBinding.instance!.addPostFrameCallback((_) async {
-          _suggestionsBoxController.overlayEntry!.markNeedsBuild();
-        });
-        return true;
+    return RawKeyboardListener(
+      focusNode: _effectiveFocusNode,
+      onKey: (event) {
+        final normalCharactersText = _value.normalCharactersText;
+        if (event is RawKeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (normalCharactersText.isNotEmpty) {
+            final sd = normalCharactersText.substring(
+                0, normalCharactersText.length - 1);
+            _updateTextInputState(putText: sd, replaceText: true);
+          } else if (_chips.isNotEmpty) {
+            setState(() {
+              _chips.remove(_chips.last);
+            });
+            widget.onChanged(_chips.toList(growable: false));
+          }
+        }
       },
-      child: SizeChangedLayoutNotifier(
-        child: Column(
-          children: <Widget>[
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                FocusScope.of(context).requestFocus(_effectiveFocusNode);
-                _textInputConnection?.show();
-              },
-              child: InputDecorator(
-                decoration: widget.decoration,
-                isFocused: _effectiveFocusNode.hasFocus,
-                isEmpty: _value.text.isEmpty && _chips.isEmpty,
-                child: Wrap(
-                  spacing: 4.0,
-                  runSpacing: 4.0,
-                  children: chipsChildren,
+      child: NotificationListener<SizeChangedLayoutNotification>(
+        onNotification: (SizeChangedLayoutNotification val) {
+          WidgetsBinding.instance!.addPostFrameCallback((_) async {
+            _suggestionsBoxController.overlayEntry!.markNeedsBuild();
+          });
+          return true;
+        },
+        child: SizeChangedLayoutNotifier(
+          child: Column(
+            children: <Widget>[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  FocusScope.of(context).requestFocus(_effectiveFocusNode);
+                  _textInputConnection?.show();
+                },
+                child: InputDecorator(
+                  decoration: widget.decoration,
+                  isFocused: _effectiveFocusNode.hasFocus,
+                  isEmpty: _value.text.isEmpty && _chips.isEmpty,
+                  child: Wrap(
+                    spacing: 4.0,
+                    runSpacing: 4.0,
+                    children: chipsChildren,
+                  ),
                 ),
               ),
-            ),
-            CompositedTransformTarget(
-              link: _layerLink,
-              child: Container(),
-            ),
-          ],
+              CompositedTransformTarget(
+                link: _layerLink,
+                child: Container(),
+              ),
+            ],
+          ),
         ),
       ),
     );
