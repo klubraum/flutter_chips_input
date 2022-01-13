@@ -278,7 +278,11 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
     _textInputConnection!.show();
     _textInputConnection!.setEditingState(localValue);
 
-    Future.delayed(const Duration(milliseconds: 100), () {
+    _scrollToVisible(); 
+  }
+    
+  void _scrollToVisible() {
+    Future.delayed(const Duration(milliseconds: 200), () {
       WidgetsBinding.instance?.addPostFrameCallback((_) async {
         final renderBox = context.findRenderObject() as RenderBox?;
         if (renderBox != null) {
@@ -286,7 +290,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
         }
       });
     });
-  }
+  }    
 
   void _onSearchChanged(String value) async {
     final localId = ++_searchId;
