@@ -137,7 +137,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
     _effectiveFocusNode.addListener(_handleFocusChanged);
 
-    WidgetsBinding.instance!.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _initOverlayEntry();
       if (mounted && widget.autofocus && _effectiveFocusNode != null) {
         FocusScope.of(context).autofocus(_effectiveFocusNode);
@@ -283,10 +283,13 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
   void _scrollToVisible() {
     Future.delayed(const Duration(milliseconds: 200), () {
-      WidgetsBinding.instance?.addPostFrameCallback((_) async {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         final renderBox = context.findRenderObject() as RenderBox?;
         if (renderBox != null) {
-          await Scrollable.of(context)?.position.ensureVisible(renderBox);
+          final scrollable = Scrollable.maybeOf(context);
+          if (scrollable != null) {
+            await scrollable.position.ensureVisible(renderBox);
+          }
         }
       });
     });
@@ -472,7 +475,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
       },
       child: NotificationListener<SizeChangedLayoutNotification>(
         onNotification: (SizeChangedLayoutNotification val) {
-          WidgetsBinding.instance!.addPostFrameCallback((_) async {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
             _suggestionsBoxController.overlayEntry!.markNeedsBuild();
           });
           return true;
@@ -513,6 +516,13 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
   @override
   void removeTextPlaceholder() {}
+
+  @override
+  void didChangeInputControl(
+      TextInputControl? oldControl, TextInputControl? newControl) {}
+
+  @override
+  void performSelector(String selectorName) {}
 
   @override
   void showToolbar() {}

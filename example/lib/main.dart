@@ -199,7 +199,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   );
                 },
               ),*/
-              RaisedButton(
+              ElevatedButton(
                 child: Text('Add Chip'),
                 onPressed: () {
                   _chipKey.currentState!.selectSuggestion(AppProfile(
