@@ -526,4 +526,7 @@ class ChipsInputState<T> extends State<ChipsInput<T>>
 
   @override
   void showToolbar() {}
+
+  @override
+  void insertContent(KeyboardInsertedContent content) {}
 }
